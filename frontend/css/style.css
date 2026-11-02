@@ -1,0 +1,352 @@
+/*
+ * Styles complémentaires à Tailwind (chargé via CDN).
+ * L'essentiel du design est fait avec les classes Tailwind dans le HTML ;
+ * ici on ne met que ce qui est plus lisible en CSS classique.
+ */
+
+:root {
+  --ink: #0b0b0c;
+  --gold: #c8a24a;
+  --gold-light: #e3c98a;
+  --cream: #f7f5f0;
+}
+
+/* Alpine : masque les éléments tant qu'Alpine n'a pas initialisé la page
+   (évite le "flash" des templates non interprétés). */
+[x-cloak] {
+  display: none !important;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--cream);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cadre d'image : si la photo ne charge pas, l'<img> est masquée (voir @error
+   dans le HTML) et ce fond avec une icône de montre apparaît à la place. */
+.img-frame {
+  background-color: #ece8df;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23c8a24a' stroke-width='1.2'%3E%3Ccircle cx='12' cy='12' r='6'/%3E%3Cpath d='M12 9v3l2 1.5M9 6.5 9.5 2h5l.5 4.5M9 17.5 9.5 22h5l.5-4.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 30%;
+}
+
+/* Liseré doré décoratif sous les titres. */
+.gold-rule {
+  width: 3rem;
+  height: 1px;
+  background: linear-gradient(90deg, var(--gold), var(--gold-light));
+}
+
+/* Zoom doux de l'image au survol d'une carte produit. */
+.product-card img {
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.product-card:hover img {
+  transform: scale(1.04);
+}
+
+/* ===== Hero de la page d'accueil : vidéo pilotée par le scroll ===== */
+/* (animation : js/hero-scroll.js) */
+
+/* Hauteur de scroll : 4 écrans pour parcourir toute la vidéo. */
+.hero-scroll {
+  height: 400vh;
+}
+
+/* Bloc collé à l'écran. 100svh = hauteur réellement visible sur mobile
+   (barre d'adresse comprise) ; les anciens navigateurs gardent 100vh.
+   Fond noir + poster : ce qu'on voit tant que la vidéo n'est pas chargée. */
+.hero-sticky {
+  height: 100vh;
+  height: 100svh;
+  background: #000 url('../assets/images/hero-poster.jpg') center / cover no-repeat;
+}
+
+/* Une étape de texte occupe tout l'écran (au-dessus de la vidéo, z-index 10)
+   et place son contenu selon son modificateur. Mobile par défaut : en bas. */
+.hero-step {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: flex-end;
+  padding: 5rem 1rem 3.5rem;
+}
+
+/* Les étapes 2 et 3 sont cachées au départ ; GSAP les fait apparaître. */
+.hero-step[data-step='reveal'],
+.hero-step[data-step='outro'] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.hero-step-content {
+  position: relative; /* passe au-dessus de son dégradé */
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Dégradé de lisibilité. Mobile : du bas vers le haut, la montre au centre reste visible. */
+.hero-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.35) 35%, transparent 60%);
+}
+
+/* Bouton final : centré, quelle que soit la taille d'écran. */
+.hero-step--bottom {
+  justify-content: center;
+  text-align: center;
+}
+
+/* Ordinateur : le texte se place sur un côté, le dégradé ne couvre que ce côté. */
+@media (min-width: 768px) {
+  .hero-step {
+    padding: 6rem 4rem;
+  }
+
+  .hero-step--left {
+    align-items: center;
+    justify-content: flex-start;
+  }
+  .hero-step--left .hero-step-content {
+    max-width: 40%;
+  }
+  .hero-step--left .hero-shade {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 40%, transparent 65%);
+  }
+
+  .hero-step--right {
+    align-items: center;
+    justify-content: flex-end;
+    text-align: right;
+  }
+  .hero-step--right .hero-step-content {
+    max-width: 40%;
+  }
+  .hero-step--right .hero-shade {
+    background: linear-gradient(to left, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 40%, transparent 65%);
+  }
+
+  .hero-step--bottom {
+    padding-bottom: 4rem;
+  }
+  .hero-step--bottom .hero-shade {
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, transparent 35%);
+  }
+}
+
+/* Moins d'animations demandé : pas de scrub (le JS ne s'active pas), la
+   section ne fait plus qu'un écran et affiche le poster fixe avec le titre. */
+@media (prefers-reduced-motion: reduce) {
+  .hero-scroll {
+    height: auto;
+  }
+  /* ".hero-scroll" devant : plus spécifique que la classe Tailwind "flex",
+     injectée par le CDN après cette feuille de style. */
+  .hero-scroll .hero-video,
+  .hero-scroll .hero-scroll-hint {
+    display: none;
+  }
+}
+
+/* ===== Section "Savoir-faire" : 4 photos animées au scroll ===== */
+/* (animation : js/craft-section.js)
+   Par défaut (reduced-motion ou GSAP absent) : les photos s'affichent les unes
+   sous les autres. La classe .craft--animated, ajoutée par le JS, active la
+   version plein écran superposée. */
+
+/* --- Mise en page par défaut : une photo = un bloc, texte par-dessus --- */
+.craft-slide {
+  position: relative;
+  height: 80vh;
+  height: 80svh;
+  min-height: 26rem;
+  margin: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end; /* mobile : texte en bas */
+  /* Pas de padding ici : il réduirait la hauteur de l'image (son height: 100%
+     se calculerait sur la zone intérieure). L'espacement est sur .craft-text. */
+}
+
+.craft-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Dégradé de lisibilité. Mobile : du bas vers le haut. */
+.craft-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.35) 35%, transparent 60%);
+}
+
+.craft-text {
+  position: relative;
+  z-index: 10;
+  margin: 0 1rem 3.5rem;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Petit numéro doré "01", "02"... au-dessus du titre. */
+.craft-num {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #c9a961;
+  font-size: 1.125rem;
+  letter-spacing: 0.3em;
+  margin-bottom: 0.75rem;
+}
+
+/* La barre de progression n'a de sens qu'avec l'animation. */
+.craft-progress {
+  display: none;
+}
+
+/* Ordinateur : texte sur un côté, dégradé uniquement de ce côté. */
+@media (min-width: 768px) {
+  .craft-slide {
+    align-items: center;
+  }
+  .craft-text {
+    max-width: 32%;
+    margin: 0 5rem 0 4rem; /* 5rem à droite : place pour la barre de progression */
+  }
+  .craft-slide--left {
+    justify-content: flex-start;
+  }
+  .craft-slide--left .craft-shade {
+    background: linear-gradient(to right, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 40%, transparent 65%);
+  }
+  .craft-slide--right {
+    justify-content: flex-end;
+    text-align: right;
+  }
+  .craft-slide--right .craft-shade {
+    background: linear-gradient(to left, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 40%, transparent 65%);
+  }
+}
+
+/* --- Version animée : 400vh de scroll, photos superposées dans un bloc collé --- */
+.craft--animated {
+  height: 400vh;
+}
+.craft--animated .craft-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+.craft--animated .craft-slide {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  min-height: 0;
+}
+/* Seule la 1re photo est visible au départ ; GSAP gère les suivantes. */
+.craft--animated .craft-slide:not(:first-of-type) {
+  opacity: 0;
+  visibility: hidden;
+}
+.craft--animated .craft-img {
+  will-change: transform; /* zoom plus fluide */
+}
+
+/* Barre de progression fine et dorée, sur le côté droit. */
+.craft--animated .craft-progress {
+  position: absolute;
+  z-index: 20;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+.craft-progress-label {
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: rgba(255, 255, 255, 0.7);
+}
+.craft-progress-current {
+  color: #c9a961;
+}
+.craft-progress-track {
+  position: relative;
+  width: 1px;
+  height: 30vh;
+  background: rgba(255, 255, 255, 0.2);
+}
+.craft-progress-fill {
+  position: absolute;
+  inset: 0;
+  background: #c9a961;
+  transform-origin: top;
+  transform: scaleY(0);
+}
+@media (min-width: 768px) {
+  .craft--animated .craft-progress {
+    right: 2rem;
+  }
+}
+
+/* Zoom de l'image produit qui suit la souris (uniquement sur les écrans
+   avec un vrai survol : pas sur mobile/tactile). */
+@media (hover: hover) {
+  .zoomable {
+    cursor: zoom-in;
+  }
+  .zoomable img {
+    transition: transform 0.25s ease-out;
+  }
+  .zoomable.is-zoomed img {
+    transform: scale(1.8);
+  }
+}
+
+/* Accordéons natifs <details> : on remplace le triangle par un "+" qui pivote. */
+.accordion summary {
+  list-style: none;
+  cursor: pointer;
+}
+.accordion summary::-webkit-details-marker {
+  display: none;
+}
+.accordion summary .accordion-icon {
+  transition: transform 0.2s ease;
+}
+.accordion[open] summary .accordion-icon {
+  transform: rotate(45deg);
+}
+
+/* Focus visible et cohérent pour la navigation au clavier. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+/* Respecte les utilisateurs qui préfèrent réduire les animations. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

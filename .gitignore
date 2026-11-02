@@ -1,0 +1,27 @@
+# Dépendances
+node_modules/
+
+# Configuration locale (secrets) : seul .env.example est versionné
+.env
+.env.*
+!.env.example
+
+# Bases SQLite locales
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+data/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Système / éditeurs
+.DS_Store
+.vscode/
+.idea/
+
+# Vidéo source d’origine (copie de travail, non utilisée par le site)
+*(original).mp4

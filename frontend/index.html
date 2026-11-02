@@ -1,0 +1,338 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <!-- Page d'accueil : hero vidéo piloté par le scroll, section "Savoir-faire",
+       puis le catalogue des montres chargé depuis l'API produits. -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TimeShop — Montres d'exception</title>
+  <meta name="description" content="TimeShop, boutique de montres : automatiques, chronographes, plongeuses.">
+
+  <!-- Polices : Playfair Display (titres) + Inter (texte) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS (CDN) + thème partagé (couleurs noir/crème/or, polices) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Nos scripts AVANT Alpine : ils déclarent les composants et les stores -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/format.js"></script>
+  <script src="js/catalog.js"></script>
+  <script src="js/hero-scroll.js"></script>
+  <script src="js/craft-section.js"></script>
+  <!-- GSAP + ScrollTrigger (CDN cdnjs) : animations au scroll du hero et du savoir-faire.
+       Nos deux scripts ci-dessus attendent DOMContentLoaded, donc GSAP est chargé à temps. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+  <!-- Alpine.js (CDN), "defer" : s'exécute après le parsing du HTML -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body class="font-sans min-h-screen flex flex-col">
+
+  <!-- ===== Bandeau d'annonce ===== -->
+  <div class="bg-gold text-ink text-[11px] sm:text-xs tracking-[0.15em] sm:tracking-[0.2em] uppercase text-center py-2 px-4">
+    Livraison offerte<span class="hidden sm:inline"> et assurée</span> · Garantie 2 ans
+  </div>
+
+  <!-- ===== Header (logo + navigation) =====
+       Transparent tant qu'on est en haut de page (il flotte sur la vidéo du hero),
+       fond noir dès qu'on a fait défiler la page. -->
+  <header x-data="{ scrolled: window.scrollY > 10 }"
+          @scroll.window.passive="scrolled = window.scrollY > 10"
+          :class="scrolled ? 'bg-ink/95 backdrop-blur border-white/10' : 'bg-transparent border-transparent'"
+          class="sticky top-0 z-40 text-white border-b transition-colors duration-300">
+    <div class="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
+      <a href="index.html" class="font-display text-2xl tracking-wide">Time<span class="text-gold">Shop</span></a>
+      <nav class="flex items-center gap-6 text-sm">
+        <a href="index.html" class="hidden sm:inline text-gold" aria-current="page">Catalogue</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1" x-data="catalogPage()">
+
+    <!-- ===== Hero : vidéo pilotée par le scroll (logique dans js/hero-scroll.js) =====
+         La section fait 400vh de haut ; le bloc .hero-sticky reste collé à l'écran
+         pendant qu'on la parcourt, et la vidéo avance ou recule avec le scroll.
+         "-mt-16" fait remonter la section sous le header transparent (64 px). -->
+    <section id="hero" class="hero-scroll relative -mt-16 text-white" aria-label="TimeShop, horlogerie d'exception">
+      <div class="hero-sticky sticky top-0 overflow-hidden">
+        <!-- Vidéo décorative : ni autoplay ni loop, c'est le scroll qui la commande.
+             muted + playsinline : indispensables pour la piloter sur mobile. -->
+        <video class="hero-video absolute inset-0 z-0 w-full h-full object-cover"
+               muted playsinline preload="auto"
+               poster="assets/images/hero-poster.jpg" aria-hidden="true">
+          <source src="assets/videos/hero.mp4" type="video/mp4">
+        </video>
+
+        <!-- Chaque étape = un dégradé (.hero-shade) du côté du texte + le texte.
+             Le côté se choisit avec hero-step--left / --right / --bottom (css/style.css). -->
+
+        <!-- Étape 1 (0–25 %) : titre, à gauche -->
+        <div class="hero-step hero-step--left" data-step="intro">
+          <div class="hero-shade" aria-hidden="true"></div>
+          <div class="hero-step-content">
+            <p class="text-[#C9A961] uppercase tracking-[0.3em] text-xs mb-4">Horlogerie d'exception</p>
+            <h1 class="font-display text-5xl sm:text-7xl leading-none">Time<span class="text-[#C9A961]">Shop</span></h1>
+            <div class="h-px w-12 bg-[#C9A961] my-6"></div>
+            <p class="text-white/80 text-base sm:text-lg font-light leading-relaxed max-w-sm">
+              L'art de mesurer le temps, de l'atelier à votre poignet.
+            </p>
+            <p class="hero-scroll-hint mt-10 flex items-center gap-3 text-xs uppercase tracking-[0.25em] text-white/60">
+              <span class="block w-px h-8 bg-gradient-to-b from-[#C9A961] to-transparent animate-pulse"></span>
+              Faites défiler
+            </p>
+          </div>
+        </div>
+
+        <!-- Étape 2 (35–60 %) : la montre s'ouvre. À gauche plutôt qu'à droite :
+             le cadran est centré, mais la couronne et le bracelet débordent vers
+             la droite (jusqu'à ~83 % de la largeur) ; l'espace libre est à gauche.
+             Pour la mettre à droite : remplacer hero-step--left par hero-step--right. -->
+        <div class="hero-step hero-step--left" data-step="reveal">
+          <div class="hero-shade" aria-hidden="true"></div>
+          <div class="hero-step-content">
+            <p class="text-[#C9A961] uppercase tracking-[0.3em] text-xs mb-4">Le savoir-faire</p>
+            <h2 class="font-display text-3xl sm:text-4xl 2xl:text-5xl leading-tight text-balance md:max-w-xs 2xl:max-w-sm">Le mouvement mécanique, révélé pièce par pièce</h2>
+            <div class="h-px w-12 bg-[#C9A961] mt-6"></div>
+          </div>
+        </div>
+
+        <!-- Étape 3 (70–100 %) : la montre se referme, bouton en bas au centre -->
+        <div class="hero-step hero-step--bottom" data-step="outro">
+          <div class="hero-shade" aria-hidden="true"></div>
+          <div class="hero-step-content">
+            <a href="#collection"
+               class="inline-block px-8 py-4 border border-[#C9A961] text-[#C9A961] text-xs uppercase tracking-[0.25em] bg-black/30 backdrop-blur-sm hover:bg-[#C9A961] hover:text-ink transition">
+              Découvrir la collection
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== Savoir-faire : 4 photos animées au scroll (logique dans js/craft-section.js) =====
+         Avec animation : section de 400vh, photos superposées en plein écran dans un
+         bloc sticky, chaque photo occupe 25 % du scroll. Sans animation : les photos
+         s'affichent les unes sous les autres (voir .craft dans css/style.css). -->
+    <section id="savoir-faire" class="craft relative bg-black text-white" aria-label="Le savoir-faire">
+      <div class="craft-sticky">
+
+        <!-- Barre de progression dorée, à droite : étape 01 à 04 -->
+        <div class="craft-progress" aria-hidden="true">
+          <span class="craft-progress-label"><span class="craft-progress-current">01</span> / 04</span>
+          <span class="craft-progress-track"><span class="craft-progress-fill"></span></span>
+        </div>
+
+        <!-- Les textes alternent gauche / droite (craft-slide--left / --right) -->
+        <figure class="craft-slide craft-slide--left">
+          <img class="craft-img" src="assets/images/detail-1.webp" width="1280" height="720" loading="lazy"
+               alt="Montre au cadran noir laqué, index argentés appliqués et aiguilles bâton, sur fond noir">
+          <div class="craft-shade" aria-hidden="true"></div>
+          <figcaption class="craft-text">
+            <p class="craft-num">01</p>
+            <h2 class="font-display text-4xl sm:text-5xl leading-tight">Le cadran</h2>
+            <p class="mt-4 text-white/80 text-base sm:text-lg font-light">Chaque index est posé à la main.</p>
+          </figcaption>
+        </figure>
+
+        <figure class="craft-slide craft-slide--right">
+          <img class="craft-img" src="assets/images/detail-2.webp" width="1024" height="572" loading="lazy"
+               alt="Mouvement mécanique vu à travers le fond saphir : rouages dorés, rubis et pont guilloché">
+          <div class="craft-shade" aria-hidden="true"></div>
+          <figcaption class="craft-text">
+            <p class="craft-num">02</p>
+            <h2 class="font-display text-4xl sm:text-5xl leading-tight">Le mouvement</h2>
+            <p class="mt-4 text-white/80 text-base sm:text-lg font-light">Plus de 200 pièces en parfaite harmonie.</p>
+          </figcaption>
+        </figure>
+
+        <figure class="craft-slide craft-slide--left">
+          <img class="craft-img" src="assets/images/detail-3.webp" width="1024" height="572" loading="lazy"
+               alt="Gros plan sur le flanc du boîtier en acier poli miroir et sa couronne cannelée">
+          <div class="craft-shade" aria-hidden="true"></div>
+          <figcaption class="craft-text">
+            <p class="craft-num">03</p>
+            <h2 class="font-display text-4xl sm:text-5xl leading-tight">Le boîtier</h2>
+            <p class="mt-4 text-white/80 text-base sm:text-lg font-light">Acier poli, finitions miroir.</p>
+          </figcaption>
+        </figure>
+
+        <figure class="craft-slide craft-slide--right">
+          <img class="craft-img" src="assets/images/detail-4.webp" width="1024" height="572" loading="lazy"
+               alt="Montre au boîtier doré et cadran gris portée au poignet, sous la manche d'un costume sombre">
+          <div class="craft-shade" aria-hidden="true"></div>
+          <figcaption class="craft-text">
+            <p class="craft-num">04</p>
+            <h2 class="font-display text-4xl sm:text-5xl leading-tight">Au poignet</h2>
+            <p class="mt-4 text-white/80 text-base sm:text-lg font-light">L'élégance au quotidien.</p>
+            <a href="#collection"
+               class="inline-block mt-8 px-8 py-4 border border-[#C9A961] text-[#C9A961] text-xs uppercase tracking-[0.25em] bg-black/30 backdrop-blur-sm hover:bg-[#C9A961] hover:text-ink transition">
+              Voir la collection
+            </a>
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <!-- ===== Arguments de réassurance ===== -->
+    <section class="border-b border-ink/10 bg-white">
+      <ul class="mx-auto max-w-6xl px-4 py-6 grid grid-cols-2 md:grid-cols-4 gap-6 text-sm">
+        <li class="flex items-center gap-3">
+          <svg class="w-6 h-6 shrink-0 text-gold-dark" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+          <span><strong class="font-medium block">Livraison offerte</strong><span class="text-ink/60">Assurée, sous 48 h</span></span>
+        </li>
+        <li class="flex items-center gap-3">
+          <svg class="w-6 h-6 shrink-0 text-gold-dark" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+          <span><strong class="font-medium block">Garantie 2 ans</strong><span class="text-ink/60">Authenticité certifiée</span></span>
+        </li>
+        <li class="flex items-center gap-3">
+          <svg class="w-6 h-6 shrink-0 text-gold-dark" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+          <span><strong class="font-medium block">Retour 30 jours</strong><span class="text-ink/60">Gratuit et sans question</span></span>
+        </li>
+        <li class="flex items-center gap-3">
+          <svg class="w-6 h-6 shrink-0 text-gold-dark" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z"/></svg>
+          <span><strong class="font-medium block">Paiement sécurisé</strong><span class="text-ink/60">Données chiffrées</span></span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- ===== Catalogue (logique dans js/catalog.js) =====
+         id="collection" : cible des boutons "Découvrir / Voir la collection".
+         scroll-mt-20 : laisse la place du header quand on y arrive par un lien. -->
+    <section id="collection" class="mx-auto max-w-6xl px-4 py-14 scroll-mt-20">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-8">
+        <div>
+          <h2 class="font-display text-3xl sm:text-4xl">La collection</h2>
+          <p class="text-sm text-ink/60 mt-2" x-cloak x-show="!loading && !error"
+             x-text="`${visibleProducts.length} montre${visibleProducts.length > 1 ? 's' : ''}`"></p>
+        </div>
+
+        <!-- ===== Recherche + tri (faits dans le navigateur, sans nouvel appel à l'API) =====
+             x-model.debounce : la recherche attend 200 ms après la dernière touche. -->
+        <div class="flex flex-col sm:flex-row gap-3">
+          <label class="relative block">
+            <span class="sr-only">Rechercher une montre</span>
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-ink/40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z"/></svg>
+            <input type="search" x-model.debounce.200ms="search" placeholder="Rechercher une montre…"
+                   class="w-full sm:w-64 h-11 pl-9 pr-3 bg-white border border-ink/15 text-sm outline-none focus:border-gold">
+          </label>
+          <label class="block">
+            <span class="sr-only">Trier par</span>
+            <select x-model="sort" class="w-full sm:w-auto h-11 px-3 bg-white border border-ink/15 text-sm outline-none focus:border-gold">
+              <option value="featured">Sélection</option>
+              <option value="price-asc">Prix croissant</option>
+              <option value="price-desc">Prix décroissant</option>
+              <option value="name">Nom (A → Z)</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <!-- ===== Filtres par marque (côté serveur : GET /api/products?brand=...) ===== -->
+      <div class="flex flex-wrap items-center gap-2 mb-10" x-show="brands.length > 0" x-cloak>
+        <button type="button" @click="selectBrand('')"
+                :class="selectedBrand === '' ? 'bg-ink text-white border-ink' : 'bg-transparent text-ink border-ink/20 hover:border-ink'"
+                class="px-4 py-2 rounded-full border text-sm transition">Toutes</button>
+        <template x-for="brand in brands" :key="brand">
+          <button type="button" @click="selectBrand(brand)" x-text="brand"
+                  :class="selectedBrand === brand ? 'bg-ink text-white border-ink' : 'bg-transparent text-ink border-ink/20 hover:border-ink'"
+                  class="px-4 py-2 rounded-full border text-sm transition"></button>
+        </template>
+      </div>
+
+      <!-- ===== État : chargement (squelettes animés) ===== -->
+      <div x-show="loading" class="grid gap-8 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Chargement">
+        <template x-for="n in 6" :key="n">
+          <div class="animate-pulse">
+            <div class="aspect-[4/5] bg-ink/10 rounded"></div>
+            <div class="h-3 w-20 bg-ink/10 rounded mt-4"></div>
+            <div class="h-5 w-2/3 bg-ink/10 rounded mt-3"></div>
+            <div class="h-4 w-24 bg-ink/10 rounded mt-3"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- ===== État : erreur API ===== -->
+      <div x-cloak x-show="!loading && error" class="max-w-lg mx-auto text-center border border-red-200 bg-red-50 rounded p-8">
+        <p class="font-display text-2xl mb-2">Catalogue indisponible</p>
+        <p class="text-sm text-red-700 mb-6" x-text="error"></p>
+        <button type="button" @click="load()" class="px-6 py-3 bg-ink text-white text-sm uppercase tracking-widest hover:bg-gold hover:text-ink transition">
+          Réessayer
+        </button>
+      </div>
+
+      <!-- ===== État : aucun résultat ===== -->
+      <div x-cloak x-show="!loading && !error && visibleProducts.length === 0" class="text-center py-16">
+        <p class="font-display text-2xl">Aucune montre trouvée</p>
+        <p class="text-ink/60 mt-2 text-sm">Essayez un autre mot-clé ou une autre maison.</p>
+        <button type="button" x-show="hasActiveFilters" @click="resetFilters()"
+                class="mt-6 text-sm underline underline-offset-4 hover:text-gold-dark">Réinitialiser les filtres</button>
+      </div>
+
+      <!-- ===== Grille des produits : une carte par montre (visibleProducts = recherche + tri appliqués) ===== -->
+      <div x-cloak x-show="!loading && !error && visibleProducts.length > 0" class="grid gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
+        <template x-for="product in visibleProducts" :key="product.id">
+          <!-- Le lien vers la fiche produit est sur l'image et sur le titre. -->
+          <article class="product-card group">
+            <div class="img-frame relative aspect-[4/5] overflow-hidden rounded">
+              <a :href="`product.html?id=${product.id}`" class="block w-full h-full" :aria-label="product.name">
+                <img :src="product.image" :alt="product.name" loading="lazy"
+                     @error="$el.style.visibility = 'hidden'"
+                     class="w-full h-full object-cover" :class="{ 'grayscale opacity-70': product.stock === 0 }">
+              </a>
+              <!-- Badges de stock -->
+              <span x-show="product.stock === 0"
+                    class="absolute top-3 left-3 bg-ink text-white text-[11px] uppercase tracking-widest px-3 py-1">Épuisé</span>
+              <span x-show="product.stock > 0 && product.stock <= 3"
+                    class="absolute top-3 left-3 bg-gold text-ink text-[11px] uppercase tracking-widest px-3 py-1"
+                    x-text="`Plus que ${product.stock}`"></span>
+            </div>
+            <div class="mt-4 flex items-start justify-between gap-4">
+              <div class="min-w-0">
+                <p class="text-[11px] uppercase tracking-[0.2em] text-gold-dark" x-text="product.brand"></p>
+                <h3 class="font-display text-xl mt-1 leading-snug">
+                  <a :href="`product.html?id=${product.id}`" class="hover:text-gold-dark transition" x-text="product.name"></a>
+                </h3>
+              </div>
+              <p class="pt-5 whitespace-nowrap text-ink/80" x-text="$price(product.price)"></p>
+            </div>
+          </article>
+        </template>
+      </div>
+    </section>
+  </main>
+
+  <!-- ===== Footer : présentation, liens, services ===== -->
+  <footer class="bg-ink text-white/60 text-sm mt-10">
+    <div class="mx-auto max-w-6xl px-4 py-14 grid gap-10 sm:grid-cols-2 md:grid-cols-4">
+      <div class="md:col-span-2">
+        <p class="font-display text-2xl text-white">Time<span class="text-gold">Shop</span></p>
+        <p class="mt-3 max-w-sm leading-relaxed">Des montres choisies pour durer, livrées avec leur certificat d'authenticité et une garantie de deux ans.</p>
+      </div>
+      <div>
+        <p class="text-white uppercase tracking-widest text-xs mb-4">Boutique</p>
+        <ul class="space-y-2">
+          <li><a href="index.html" class="hover:text-gold transition">Catalogue</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-white uppercase tracking-widest text-xs mb-4">Services</p>
+        <ul class="space-y-2">
+          <li>Livraison offerte</li>
+          <li>Retour sous 30 jours</li>
+          <li>Garantie 2 ans</li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-white/10">
+      <p class="mx-auto max-w-6xl px-4 py-5 text-xs text-white/40">© TimeShop — Projet pédagogique, marques et produits fictifs.</p>
+    </div>
+  </footer>
+</body>
+</html>

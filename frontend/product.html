@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <!-- Page détail d'une montre, appelée avec son identifiant : product.html?id=3.
+       Les données viennent de l'API produits (GET /api/products/:id), via js/product.js. -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Titre provisoire : remplacé par le nom de la montre une fois chargée (product.js) -->
+  <title>Montre — TimeShop</title>
+
+  <!-- Polices : Playfair Display (titres) + Inter (texte) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS (CDN) + thème partagé (couleurs noir/crème/or, polices) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="js/theme.js"></script>
+  <link rel="stylesheet" href="css/style.css">
+
+  <!-- Nos scripts AVANT Alpine : URLs de l'API, requêtes, format des prix, composant de la page -->
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/format.js"></script>
+  <script src="js/product.js"></script>
+  <!-- Alpine.js (CDN), "defer" : s'exécute après le parsing du HTML -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>
+</head>
+<body class="font-sans min-h-screen flex flex-col">
+
+  <!-- ===== Bandeau d'annonce ===== -->
+  <div class="bg-gold text-ink text-[11px] sm:text-xs tracking-[0.15em] sm:tracking-[0.2em] uppercase text-center py-2 px-4">
+    Livraison offerte<span class="hidden sm:inline"> et assurée</span> · Garantie 2 ans
+  </div>
+
+  <!-- ===== Header (logo + navigation) ===== -->
+  <header x-data class="sticky top-0 z-40 bg-ink/95 backdrop-blur text-white border-b border-white/10">
+    <div class="mx-auto max-w-6xl px-4 h-16 flex items-center justify-between">
+      <a href="index.html" class="font-display text-2xl tracking-wide">Time<span class="text-gold">Shop</span></a>
+      <nav class="flex items-center gap-6 text-sm">
+        <a href="index.html" class="hidden sm:inline hover:text-gold transition">Catalogue</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="flex-1 mx-auto w-full max-w-6xl px-4 py-8 sm:py-10" x-data="productPage()">
+
+    <!-- ===== Fil d'Ariane : Catalogue / marque / montre =====
+         x-if : la marque et le nom ne sont ajoutés qu'une fois la montre chargée. -->
+    <nav aria-label="Fil d'Ariane" class="text-xs uppercase tracking-widest text-ink/50 mb-8">
+      <ol class="flex flex-wrap items-center gap-2">
+        <li><a href="index.html" class="hover:text-ink">Catalogue</a></li>
+        <template x-if="product">
+          <li class="flex items-center gap-2"><span aria-hidden="true">/</span><span x-text="product.brand"></span></li>
+        </template>
+        <template x-if="product">
+          <li class="flex items-center gap-2 text-ink"><span aria-hidden="true" class="text-ink/50">/</span><span x-text="product.name" aria-current="page"></span></li>
+        </template>
+      </ol>
+    </nav>
+
+    <!-- ===== État : chargement (blocs gris animés en attendant l'API) ===== -->
+    <div x-show="loading" class="grid gap-10 md:grid-cols-2 animate-pulse" aria-busy="true">
+      <div class="aspect-square bg-ink/10 rounded"></div>
+      <div class="space-y-4 pt-4">
+        <div class="h-3 w-24 bg-ink/10 rounded"></div>
+        <div class="h-8 w-3/4 bg-ink/10 rounded"></div>
+        <div class="h-6 w-32 bg-ink/10 rounded"></div>
+        <div class="h-24 w-full bg-ink/10 rounded"></div>
+      </div>
+    </div>
+
+    <!-- ===== État : erreur (id invalide, montre introuvable, API injoignable) ===== -->
+    <div x-cloak x-show="!loading && error" class="max-w-lg mx-auto text-center border border-ink/10 bg-white rounded p-10">
+      <p class="font-display text-2xl mb-2">Montre indisponible</p>
+      <p class="text-sm text-ink/60 mb-6" x-text="error"></p>
+      <a href="index.html" class="inline-block px-6 py-3 bg-ink text-white text-sm uppercase tracking-widest hover:bg-gold hover:text-ink transition">
+        Voir le catalogue
+      </a>
+    </div>
+
+    <!-- ===== Détail du produit =====
+         x-if (et non x-show) : le contenu n'est créé que lorsque "product" existe,
+         ce qui évite les erreurs du type "product.name" sur une valeur null. -->
+    <template x-if="!loading && product">
+      <div>
+        <article class="grid gap-10 md:grid-cols-2 md:gap-16">
+          <!-- Image avec zoom qui suit la souris : "origin" = point visé, en %.
+               Le zoom lui-même est dans style.css (.zoomable), actif seulement sur écran avec souris. -->
+          <div x-data="{ zoomed: false, origin: '50% 50%' }"
+               @mouseenter="zoomed = true" @mouseleave="zoomed = false"
+               @mousemove="origin = `${($event.offsetX / $el.offsetWidth) * 100}% ${($event.offsetY / $el.offsetHeight) * 100}%`"
+               :class="{ 'is-zoomed': zoomed }"
+               class="zoomable img-frame relative aspect-square overflow-hidden rounded md:sticky md:top-24 self-start">
+            <img :src="product.image" :alt="product.name" @error="$el.style.visibility = 'hidden'"
+                 :style="`transform-origin: ${origin}`"
+                 class="w-full h-full object-cover pointer-events-none" :class="{ 'grayscale opacity-70': product.stock === 0 }">
+            <span x-show="product.stock === 0"
+                  class="pointer-events-none absolute top-4 left-4 bg-ink text-white text-xs uppercase tracking-widest px-3 py-1">Épuisé</span>
+          </div>
+
+          <!-- Informations : marque, nom, prix, description -->
+          <div class="md:pt-2">
+            <p class="text-xs uppercase tracking-[0.3em] text-gold-dark" x-text="product.brand"></p>
+            <h1 class="font-display text-3xl sm:text-5xl mt-3 leading-tight" x-text="product.name"></h1>
+            <div class="gold-rule my-6"></div>
+            <!-- $price() : formatage en euros, défini dans js/format.js -->
+            <p class="text-2xl sm:text-3xl font-light" x-text="$price(product.price)"></p>
+            <p class="text-xs text-ink/50 mt-1">TVA incluse · Livraison offerte</p>
+
+            <p class="mt-8 text-ink/80 leading-relaxed" x-text="product.description"></p>
+
+            <!-- Disponibilité : 3 cas selon le stock renvoyé par l'API
+                 (0 = épuisé, 1 à 3 = stock faible, plus de 3 = en stock) -->
+            <div class="mt-8 text-sm">
+              <p x-show="product.stock === 0" class="flex items-center gap-2 text-red-700">
+                <span class="w-2 h-2 rounded-full bg-red-600"></span> Stock épuisé
+              </p>
+              <p x-show="product.stock > 0 && product.stock <= 3" class="flex items-center gap-2 text-gold-dark">
+                <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span>
+                <span x-text="`Plus que ${product.stock} en stock`"></span>
+              </p>
+              <p x-show="product.stock > 3" class="flex items-center gap-2 text-emerald-700">
+                <span class="w-2 h-2 rounded-full bg-emerald-600"></span> En stock · expédiée sous 24 h
+              </p>
+            </div>
+
+            <!-- Réassurance (icônes SVG en ligne, décoratives : aria-hidden) -->
+            <ul class="mt-8 grid grid-cols-3 gap-3 text-center text-xs text-ink/70">
+              <li class="border border-ink/10 bg-white px-2 py-4">
+                <svg class="w-6 h-6 mx-auto mb-2 text-gold-dark" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 0 1-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 0 0-3.213-9.193 2.056 2.056 0 0 0-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 0 0-10.026 0 1.106 1.106 0 0 0-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+                Livraison offerte
+              </li>
+              <li class="border border-ink/10 bg-white px-2 py-4">
+                <svg class="w-6 h-6 mx-auto mb-2 text-gold-dark" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z"/></svg>
+                Garantie 2 ans
+              </li>
+              <li class="border border-ink/10 bg-white px-2 py-4">
+                <svg class="w-6 h-6 mx-auto mb-2 text-gold-dark" fill="none" stroke="currentColor" stroke-width="1.3" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99"/></svg>
+                Retour 30 jours
+              </li>
+            </ul>
+
+            <!-- Informations complémentaires : accordéons natifs <details> (aucun JS) -->
+            <div class="mt-10 border-t border-ink/10">
+              <details class="accordion border-b border-ink/10" open>
+                <summary class="flex items-center justify-between py-4 text-sm uppercase tracking-widest">
+                  Livraison <span class="accordion-icon text-xl leading-none text-gold-dark" aria-hidden="true">+</span>
+                </summary>
+                <p class="pb-5 text-sm text-ink/70 leading-relaxed">
+                  Expédition sous 24 h ouvrées, en colis sécurisé et assuré. Livraison offerte en France métropolitaine
+                  sous 48 h, contre signature.
+                </p>
+              </details>
+              <details class="accordion border-b border-ink/10">
+                <summary class="flex items-center justify-between py-4 text-sm uppercase tracking-widest">
+                  Retours <span class="accordion-icon text-xl leading-none text-gold-dark" aria-hidden="true">+</span>
+                </summary>
+                <p class="pb-5 text-sm text-ink/70 leading-relaxed">
+                  Vous disposez de 30 jours pour changer d'avis. La montre doit être retournée non portée, dans son écrin
+                  d'origine. Le retour est gratuit.
+                </p>
+              </details>
+              <details class="accordion border-b border-ink/10">
+                <summary class="flex items-center justify-between py-4 text-sm uppercase tracking-widest">
+                  Garantie <span class="accordion-icon text-xl leading-none text-gold-dark" aria-hidden="true">+</span>
+                </summary>
+                <p class="pb-5 text-sm text-ink/70 leading-relaxed">
+                  Chaque montre est livrée avec son certificat d'authenticité et couverte 2 ans contre tout défaut de fabrication.
+                </p>
+              </details>
+            </div>
+          </div>
+        </article>
+
+        <!-- ===== Suggestions "Vous aimerez aussi" (calculées dans product.js) ===== -->
+        <section x-show="related.length > 0" class="mt-24">
+          <div class="text-center mb-10">
+            <h2 class="font-display text-3xl">Vous aimerez aussi</h2>
+            <div class="gold-rule mx-auto mt-4"></div>
+          </div>
+          <!-- Mobile : 2 colonnes, la 3e suggestion est masquée -->
+          <div class="grid gap-x-4 gap-y-8 sm:gap-8 grid-cols-2 sm:grid-cols-3">
+            <template x-for="(item, index) in related" :key="item.id">
+              <a :href="`product.html?id=${item.id}`" class="product-card group block" :class="{ 'hidden sm:block': index === 2 }">
+                <div class="img-frame aspect-[4/5] overflow-hidden rounded">
+                  <img :src="item.image" :alt="item.name" loading="lazy" @error="$el.style.visibility = 'hidden'"
+                       class="w-full h-full object-cover" :class="{ 'grayscale opacity-70': item.stock === 0 }">
+                </div>
+                <p class="mt-4 text-[11px] uppercase tracking-[0.2em] text-gold-dark" x-text="item.brand"></p>
+                <h3 class="font-display text-base sm:text-lg mt-1 leading-snug group-hover:text-gold-dark transition" x-text="item.name"></h3>
+                <p class="text-ink/80 text-sm mt-1" x-text="$price(item.price)"></p>
+              </a>
+            </template>
+          </div>
+        </section>
+      </div>
+    </template>
+  </main>
+
+  <!-- ===== Footer : présentation, liens, services ===== -->
+  <footer class="bg-ink text-white/60 text-sm mt-16">
+    <div class="mx-auto max-w-6xl px-4 py-14 grid gap-10 sm:grid-cols-2 md:grid-cols-4">
+      <div class="md:col-span-2">
+        <p class="font-display text-2xl text-white">Time<span class="text-gold">Shop</span></p>
+        <p class="mt-3 max-w-sm leading-relaxed">Des montres choisies pour durer, livrées avec leur certificat d'authenticité et une garantie de deux ans.</p>
+      </div>
+      <div>
+        <p class="text-white uppercase tracking-widest text-xs mb-4">Boutique</p>
+        <ul class="space-y-2">
+          <li><a href="index.html" class="hover:text-gold transition">Catalogue</a></li>
+        </ul>
+      </div>
+      <div>
+        <p class="text-white uppercase tracking-widest text-xs mb-4">Services</p>
+        <ul class="space-y-2">
+          <li>Livraison offerte</li>
+          <li>Retour sous 30 jours</li>
+          <li>Garantie 2 ans</li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-white/10">
+      <p class="mx-auto max-w-6xl px-4 py-5 text-xs text-white/40">© TimeShop — Projet pédagogique, marques et produits fictifs.</p>
+    </div>
+  </footer>
+</body>
+</html>
