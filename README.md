@@ -2,7 +2,7 @@
 
 Site vitrine d'une boutique de montres. Le front est un site statique (HTML, CSS, JavaScript, sans étape de build) qui affiche le catalogue en interrogeant une API produits.
 
-Le projet est découpé en microservices pour pouvoir être conteneurisé plus tard : un dossier par service, toute la configuration passe par des variables d'environnement, chaque service a sa propre base de données.
+Le projet est pensé pour être conteneurisé plus tard : le front et l'API sont dans des dossiers séparés, et toute la configuration de l'API passe par des variables d'environnement.
 
 ## Fonctionnalités
 
@@ -42,8 +42,6 @@ Les états de chargement, d'erreur (API injoignable, montre introuvable) et de s
 
 Tout l'accès à la base est regroupé dans `services/product-service/src/db.js`, derrière des fonctions asynchrones. Pour passer de SQLite à PostgreSQL, il suffit de réécrire ce fichier.
 
-Le dossier `services/order-service` contient une API de commandes réalisée dans une première version du projet. Le front ne l'utilise plus depuis le retrait du panier, et il n'est pas nécessaire de la lancer.
-
 ## Arborescence
 
 ```
@@ -76,7 +74,6 @@ timeshop/
         routes/products.js
       package.json
       .env.example
-    order-service/        API commandes (non utilisée par le front)
   .gitignore
   README.md
 ```
@@ -126,15 +123,15 @@ Le fichier `.env` n'est jamais commité : seul `.env.example` est versionné.
 
 ## API produits
 
-Réponses en JSON : `{ "data": ... }` en cas de succès, `{ "error": { "message": "...", "details": ... } }` en cas d'erreur.
+L'API est en lecture seule : elle sert uniquement à afficher les montres. Les données viennent des montres d'exemple insérées par `seed.js`.
 
-| Méthode | Route                     | Description                                               | Codes              |
-|---------|---------------------------|-----------------------------------------------------------|--------------------|
-| GET     | `/health`                 | état du service et de sa base                             | 200, 503           |
-| GET     | `/api/products`           | liste des montres, filtre optionnel `?brand=Kairos`       | 200, 400           |
-| GET     | `/api/products/:id`       | détail d'une montre                                       | 200, 400, 404      |
-| POST    | `/api/products`           | ajoute une montre                                         | 201, 400           |
-| PATCH   | `/api/products/:id/stock` | modifie le stock : `{ "delta": -2 }` ou `{ "stock": 15 }` | 200, 400, 404, 409 |
+Réponses en JSON : `{ "data": ... }` en cas de succès, `{ "error": { "message": "..." } }` en cas d'erreur.
+
+| Méthode | Route               | Description                                         | Codes         |
+|---------|---------------------|-----------------------------------------------------|---------------|
+| GET     | `/health`           | état du service et de sa base                       | 200, 503      |
+| GET     | `/api/products`     | liste des montres, filtre optionnel `?brand=Kairos` | 200, 400      |
+| GET     | `/api/products/:id` | détail d'une montre                                 | 200, 400, 404 |
 
 ## Crédits et utilisation de l'IA
 

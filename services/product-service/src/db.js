@@ -77,40 +77,13 @@ async function count() {
   return db.prepare('SELECT COUNT(*) AS n FROM products').get().n;
 }
 
-// Insère un produit et renvoie la ligne créée (avec son id et sa date).
-async function create({ name, brand, price, image, description = '', stock = 0 }) {
-  const result = db
-    .prepare(
-      `INSERT INTO products (name, brand, price, image, description, stock)
-       VALUES (?, ?, ?, ?, ?, ?)`
-    )
-    .run(name, brand, price, image, description, stock);
-  return findById(result.lastInsertRowid);
-}
-
-// Ajoute "delta" au stock (négatif pour décrémenter) de façon ATOMIQUE :
-// la condition "stock + delta >= 0" est vérifiée dans la même requête UPDATE.
-// Deux commandes simultanées ne peuvent donc pas vendre la même dernière montre.
-// Renvoie le produit mis à jour, ou null si le stock est insuffisant.
-async function adjustStock(id, delta) {
-  const result = db
-    .prepare('UPDATE products SET stock = stock + ? WHERE id = ? AND stock + ? >= 0')
-    .run(delta, id, delta);
-  return result.changes === 1 ? findById(id) : null;
-}
-
-// Fixe le stock à une valeur absolue (réassort, inventaire).
-async function setStock(id, stock) {
-  db.prepare('UPDATE products SET stock = ? WHERE id = ?').run(stock, id);
-  return findById(id);
-}
-
 // Vide la table (utilisé par le script de seed).
 async function deleteAll() {
   db.exec("DELETE FROM products; DELETE FROM sqlite_sequence WHERE name = 'products';");
 }
 
 // Insère plusieurs produits dans une seule transaction (tout ou rien).
+// Utilisé uniquement par le script de seed (montres d'exemple).
 async function createMany(products) {
   const insert = db.prepare(
     `INSERT INTO products (name, brand, price, image, description, stock)
@@ -130,10 +103,7 @@ module.exports = {
   findAll,
   findById,
   count,
-  create,
   createMany,
-  adjustStock,
-  setStock,
   deleteAll,
   close,
 };

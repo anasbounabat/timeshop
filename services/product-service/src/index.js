@@ -15,9 +15,6 @@ const app = express();
 // Autorise le front (servi sur un autre port/domaine) à appeler l'API.
 app.use(cors({ origin: config.corsOrigin }));
 
-// Parse les corps JSON ; limite la taille pour éviter les abus.
-app.use(express.json({ limit: '100kb' }));
-
 // Petit logger : méthode, URL, code de réponse et durée.
 app.use((req, res, next) => {
   const start = Date.now();
@@ -51,13 +48,6 @@ app.use((req, res, next) => {
 // Format de réponse unique : { error: { message, details? } }
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  // JSON mal formé envoyé par le client (erreur levée par express.json()).
-  if (err.type === 'entity.parse.failed') {
-    return res.status(400).json({ error: { message: 'Corps JSON invalide' } });
-  }
-  if (err.type === 'entity.too.large') {
-    return res.status(413).json({ error: { message: 'Corps de requête trop volumineux' } });
-  }
   if (err instanceof HttpError) {
     return res.status(err.status).json({
       error: { message: err.message, ...(err.details && { details: err.details }) },
